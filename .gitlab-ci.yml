@@ -1,47 +1,106 @@
 stages:
   - build
   - push
+  - finalize
 
 variables:
   DOCKERIO_MIRROR: hub.wuhoo.xyz
 
-build:
+.build:
   stage: build
   image:
-    name: gcr.io/kaniko-project/executor:v1.20.0-debug
-    entrypoint: [""]
+    name: quay.io/buildah/stable:v1.34.0
+  variables:
+    STORAGE_DRIVER: vfs
+    BUILDAH_FORMAT: docker
+    BUILDAH_ISOLATION: chroot
+    CGO_ENABLED: 0
   before_script:
-    - mkdir -p /kaniko/.docker
-    - echo "{\"auths\":{\"${CI_REGISTRY}\":{\"auth\":\"$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 | tr -d '\n')\"}}}" > /kaniko/.docker/config.json
+    - echo "${CI_REGISTRY_PASSWORD}" | buildah login -u "${CI_REGISTRY_USER}" --password-stdin "${CI_REGISTRY}"
   script:
     - >-
-      /kaniko/executor
-      --registry-mirror "${DOCKERIO_MIRROR}"
-      --cache=true
-      --cache-repo "${CI_REGISTRY_IMAGE}/build-cache"
+      buildah build
+      --layers
+      --cache-to "${CI_REGISTRY_IMAGE}/build-cache-${TARGET_ARCH}"
+      --cache-from "${CI_REGISTRY_IMAGE}/build-cache-${TARGET_ARCH}"
       --cache-ttl 168h0m0s
-      --context "${CI_PROJECT_DIR}"
-      --dockerfile "${CI_PROJECT_DIR}/Dockerfile"
-      --destination=image
-      --no-push
-      --tarPath image.tar
+      --tag caddy-pq
+      --file ${DOCKERFILE}
+      .
+    - buildah push localhost/caddy-pq docker-archive:image-${TARGET_ARCH}.tar
   artifacts:
     untracked: false
-    expire_in: 7 days
-    paths:
-      - image.tar
+    expire_in: 1 day
     when: on_success
 
-push:
+build:amd64:
+  extends: .build
+  variables:
+    DOCKERFILE: Dockerfile
+    TARGET_ARCH: amd64
+  artifacts:
+    paths:
+      - image-amd64.tar
+
+build:arm64:
+  extends: .build
+  variables:
+    DOCKERFILE: Dockerfile.arm
+    TARGET_ARCH: arm64
+  artifacts:
+    paths:
+      - image-arm64.tar
+
+.push:
   stage: push
   image:
     name: gcr.io/go-containerregistry/crane/debug:v0.15.2
     entrypoint: [""]
   script:
     - crane auth login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}
-    - crane push image.tar ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
-    - crane push image.tar ${CI_REGISTRY_IMAGE}:latest
+    - crane push image-${TARGET_ARCH}.tar ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-${TARGET_ARCH}
+    - crane push image-${TARGET_ARCH}.tar ${CI_REGISTRY_IMAGE}:latest-${TARGET_ARCH}
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+
+push:amd64:
+  extends: .push
+  variables:
+    TARGET_ARCH: amd64
   needs:
-    - build
+    - build:amd64
+
+push:arm64:
+  extends: .push
+  variables:
+    TARGET_ARCH: arm64
+  needs:
+    - build:arm64
+
+finalize-multi-arch:
+  stage: finalize
+  image:
+    name: mplatform/manifest-tool:alpine-v2.1.5
+    entrypoint: [""]
+  script:
+    - >-
+      /manifest-tool
+      --username ${CI_REGISTRY_USER}
+      --password ${CI_REGISTRY_PASSWORD}
+      push from-args
+      --platforms linux/amd64,linux/arm64/v8
+      --template ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}-ARCH
+      --target ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA}
+    - >-
+      /manifest-tool
+      --username ${CI_REGISTRY_USER}
+      --password ${CI_REGISTRY_PASSWORD}
+      push from-args
+      --platforms linux/amd64,linux/arm64/v8
+      --template ${CI_REGISTRY_IMAGE}:latest-ARCH
+      --target ${CI_REGISTRY_IMAGE}:latest
+  needs:
+    - push:amd64
+    - push:arm64
   rules:
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
