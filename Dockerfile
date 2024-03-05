@@ -1,13 +1,13 @@
 FROM docker.io/library/alpine:3.19.1 AS builder
 
 WORKDIR /
-RUN apk add --no-cache --virtual git=2.43.0-r0 && \
+RUN apk add --no-cache --virtual pack git=2.43.0-r0 && \
     git clone https://github.com/cloudflare/go && \
     git clone https://github.com/caddyserver/caddy && \
-    apk del git
+    apk del pack
 
 WORKDIR /go/src
-RUN apk add --no-cache --virtual pack bash=5.2.21-r0 go=1.21.6-r0 && \
+RUN apk add --no-cache --virtual pack bash=5.2.21-r0 go=1.21.7-r0 && \
     ./make.bash && \
     apk del pack
 
