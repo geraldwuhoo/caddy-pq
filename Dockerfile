@@ -7,7 +7,7 @@ RUN apk add --no-cache --virtual pack git=2.43.0-r0 && \
     apk del pack
 
 WORKDIR /go/src
-RUN apk add --no-cache --virtual pack bash=5.2.21-r0 go=1.21.7-r0 && \
+RUN apk add --no-cache --virtual pack bash=5.2.21-r0 go=1.21.8-r0 && \
     ./make.bash && \
     apk del pack
 
