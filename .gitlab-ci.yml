@@ -9,7 +9,7 @@ variables:
 .build:
   stage: build
   image:
-    name: quay.io/buildah/stable:v1.34.0
+    name: quay.io/buildah/stable:v1.35.0
   variables:
     STORAGE_DRIVER: vfs
     BUILDAH_FORMAT: docker
