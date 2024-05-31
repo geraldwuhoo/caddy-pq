@@ -17,6 +17,6 @@ COPY main.go /caddy/cmd/caddy/main.go
 RUN ../../../go/bin/go mod tidy && \
     ../../../go/bin/go build -v -ldflags "-w -s" -trimpath
 
-FROM docker.io/library/caddy:2.8.0-alpine
+FROM docker.io/library/caddy:2.8.1-alpine
 
 COPY --from=builder /caddy/cmd/caddy/caddy /usr/bin/caddy
