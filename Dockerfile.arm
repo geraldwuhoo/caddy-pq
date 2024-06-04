@@ -17,6 +17,6 @@ COPY main.go /caddy/cmd/caddy/main.go
 RUN GOARCH=arm64 ../../../go/bin/go mod tidy && \
     GOARCH=arm64 ../../../go/bin/go build -v -ldflags "-w -s" -trimpath
 
-FROM --platform=linux/arm64 docker.io/arm64v8/caddy:2.8.1-alpine
+FROM --platform=linux/arm64 docker.io/arm64v8/caddy:2.8.4-alpine
 
 COPY --from=builder /caddy/cmd/caddy/caddy /usr/bin/caddy
