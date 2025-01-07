@@ -1,5 +1,5 @@
 # hadolint global ignore=DL3018,DL3029
-FROM docker.io/library/alpine:3.21.0 AS builder
+FROM docker.io/library/alpine:3.21.1 AS builder
 
 WORKDIR /
 RUN apk add --no-cache --virtual pack git && \
