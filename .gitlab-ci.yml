@@ -54,7 +54,7 @@ build:arm64:
 .push:
   stage: push
   image:
-    name: gcr.io/go-containerregistry/crane/debug:v0.15.2
+    name: cgr.dev/chainguard/crane:latest-dev
     entrypoint: [""]
   script:
     - crane auth login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD} ${CI_REGISTRY}
