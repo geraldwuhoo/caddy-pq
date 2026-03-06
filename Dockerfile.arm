@@ -6,6 +6,6 @@ RUN GOOS=linux GOARCH=arm64 xcaddy build \
     --with github.com/caddyserver/replace-response \
     --with github.com/caddy-dns/cloudflare
 
-FROM --platform=linux/arm64 docker.io/arm64v8/caddy:2.11.1-alpine
+FROM --platform=linux/arm64 docker.io/arm64v8/caddy:2.11.2-alpine
 
 COPY --from=builder /usr/bin/caddy /usr/bin/caddy
