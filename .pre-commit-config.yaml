@@ -20,6 +20,6 @@ repos:
     hooks:
       - id: markdownlint_docker
   - repo: https://github.com/hadolint/hadolint
-    rev: v2.15.0
+    rev: v2.15.1
     hooks:
       - id: hadolint-docker
